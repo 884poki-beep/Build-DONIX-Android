@@ -22,9 +22,20 @@ jobs:
           yes | "$SDKMANAGER" --licenses || true
           "$SDKMANAGER" "platforms;android-35" "build-tools;35.0.0"
         
-      - name: Build debug APK
-        run: gradle :app:assembleDebug --no-daemon
+      - name: Restore signing key
+        env:
+          SIGNING_KEY: ${{ secrets.SIGNING_KEY }}
+        run: |
+          echo "$SIGNING_KEY" | base64 -d > "$RUNNER_TEMP/donix-release.jks"
+
+      - name: Build release APK
+        env:
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        run: gradle :app:assembleRelease --no-daemon
+
       - uses: actions/upload-artifact@v4
         with:
-          name: DONIX-Android-debug-APK
-          path: app/build/outputs/apk/debug/app-debug.apk
+          name: DONIX-Android-release-APK
+          path: app/build/outputs/apk/release/app-release.apk
