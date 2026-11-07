@@ -6,7 +6,17 @@ Android音楽プレイヤーです。
 ## 📥 Androidアプリをダウンロード
 
 [![Download APK](https://img.shields.io/badge/Android-APKをダウンロード-brightgreen?style=for-the-badge&logo=android)](https://github.com/884poki-beep/Build-DONIX-Android/releases/download/v1.0.1/app-release.apk)
+<h2>📱 DONIX Music Player スクリーンショット</h2>
 
+<p align="center">
+  <img src="Screenshot_20261107-185131.png"
+       alt="DONIX Music Player"
+       width="320">
+</p>
+
+<p align="center">
+  💿 懐かしいMDウォークマンの操作感をスマートフォンで再現！
+</p>
 ### 🎧 主な機能
 
 - MP3音楽再生
