@@ -5,6 +5,8 @@ import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
+import android.Manifest;
+import android.content.pm.PackageManager;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.IntentFilter;
@@ -128,7 +130,9 @@ public class MainActivity extends Activity {
       .setStyle(new Notification.MediaStyle().setMediaSession(mediaSession.getSessionToken())
         .setShowActionsInCompactView(0, 1, 2));
     if (currentArtwork != null) builder.setLargeIcon(currentArtwork);
-    notificationManager.notify(NOTIFICATION_ID, builder.build());
+    if (Build.VERSION.SDK_INT < 33 || checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED) {
+      notificationManager.notify(NOTIFICATION_ID, builder.build());
+    }
   }
 
   private void setupMediaSession() {
@@ -183,6 +187,9 @@ public class MainActivity extends Activity {
     super.onCreate(state);
     currentActivity = this;
     setupMediaSession();
+    if (Build.VERSION.SDK_INT >= 33 && checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+      requestPermissions(new String[]{Manifest.permission.POST_NOTIFICATIONS}, 1003);
+    }
     web = new WebView(this);
     web.addJavascriptInterface(new CoverBridge(), "DonixNative");
     setContentView(web);
@@ -216,6 +223,10 @@ public class MainActivity extends Activity {
       }
     });
     web.loadUrl("https://appassets.androidplatform.net/assets/index.html");
+  }
+  @Override public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
+    super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+    if (requestCode == 1003 && grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) showMediaNotification();
   }
   @Override protected void onActivityResult(int request, int result, Intent data) {
     super.onActivityResult(request, result, data);
