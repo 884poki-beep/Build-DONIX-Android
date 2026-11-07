@@ -201,11 +201,49 @@ public class MainActivity extends Activity {
     s.setMediaPlaybackRequiresUserGesture(false);
     WebViewAssetLoader loader = new WebViewAssetLoader.Builder()
       .addPathHandler("/assets/", new WebViewAssetLoader.AssetsPathHandler(this)).build();
-    web.setWebViewClient(new WebViewClient() {
-      @Override public android.webkit.WebResourceResponse shouldInterceptRequest(WebView view, android.webkit.WebResourceRequest request) {
+web.setWebViewClient(new WebViewClient() {
+
+    @Override
+    public android.webkit.WebResourceResponse shouldInterceptRequest(
+            WebView view,
+            android.webkit.WebResourceRequest request) {
         return loader.shouldInterceptRequest(request.getUrl());
-      }
-    });
+    }
+
+    @Override
+    public boolean shouldOverrideUrlLoading(
+            WebView view,
+            android.webkit.WebResourceRequest request) {
+
+        if (!request.isForMainFrame()) return false;
+
+        Uri uri = request.getUrl();
+        String scheme = uri.getScheme();
+        String host = uri.getHost();
+
+        if (("https".equalsIgnoreCase(scheme)
+                || "http".equalsIgnoreCase(scheme))
+                && host != null
+                && (host.equalsIgnoreCase("music.apple.com")
+                    || host.equalsIgnoreCase("open.spotify.com"))) {
+
+            try {
+                Intent intent = new Intent(Intent.ACTION_VIEW, uri);
+                startActivity(intent);
+            } catch (android.content.ActivityNotFoundException e) {
+                android.widget.Toast.makeText(
+                    MainActivity.this,
+                    "リンクを開けませんでした",
+                    android.widget.Toast.LENGTH_SHORT
+                ).show();
+            }
+
+            return true;
+        }
+
+        return false;
+    }
+});
     web.setWebChromeClient(new WebChromeClient() {
       @Override public boolean onShowFileChooser(WebView view, ValueCallback<Uri[]> callback, FileChooserParams params) {
         if (pendingFiles != null) pendingFiles.onReceiveValue(null);
