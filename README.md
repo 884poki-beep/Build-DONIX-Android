@@ -16,7 +16,11 @@ Android音楽プレイヤーです。
 - 本体カラー変更
 - プレイリスト機能
 
-**開発：dongurikobo**# DONIX Music Player — Androidテスト版
+**開発：dongurikobo**
+
+
+
+# DONIX Music Player — Androidテスト版
 
 Ver.14のWebアプリを、オフラインで動くAndroid WebViewに同梱したプロジェクトです。
 
