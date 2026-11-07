@@ -211,8 +211,19 @@ public class MainActivity extends Activity {
         if (pendingFiles != null) pendingFiles.onReceiveValue(null);
         pendingFiles = callback;
         try {
-          Intent intent = params.createIntent();
+          // ACTION_OPEN_DOCUMENT supports selecting multiple tracks on Android.
+          // Keep single selection for the manual cover-art picker.
+          boolean multi = params.getMode() == FileChooserParams.MODE_OPEN_MULTIPLE;
+          Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
           intent.addCategory(Intent.CATEGORY_OPENABLE);
+          intent.setType(multi ? "audio/*" : "*/*");
+          if (!multi) {
+            String[] types = params.getAcceptTypes();
+            if (types != null && types.length > 0 && types[0] != null && !types[0].isEmpty()) {
+              intent.setType(types[0]);
+            }
+          }
+          intent.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, multi);
           startActivityForResult(intent, PICK_FILES);
           return true;
         } catch (Exception e) {
@@ -231,7 +242,20 @@ public class MainActivity extends Activity {
   @Override protected void onActivityResult(int request, int result, Intent data) {
     super.onActivityResult(request, result, data);
     if (request == PICK_FILES && pendingFiles != null) {
-      Uri[] uris = WebChromeClient.FileChooserParams.parseResult(result, data);
+      Uri[] uris = null;
+      if (result == RESULT_OK && data != null) {
+        android.content.ClipData clip = data.getClipData();
+        if (clip != null && clip.getItemCount() > 0) {
+          java.util.LinkedHashSet<Uri> selected = new java.util.LinkedHashSet<>();
+          for (int i = 0; i < clip.getItemCount(); i++) {
+            Uri uri = clip.getItemAt(i).getUri();
+            if (uri != null) selected.add(uri);
+          }
+          uris = selected.toArray(new Uri[0]);
+        } else if (data.getData() != null) {
+          uris = new Uri[]{data.getData()};
+        }
+      }
       if (uris != null) for (Uri uri : uris) registerCover(uri);
       pendingFiles.onReceiveValue(uris);
       pendingFiles = null;
