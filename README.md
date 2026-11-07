@@ -5,7 +5,7 @@ Android音楽プレイヤーです。
 
 ## 📥 Androidアプリをダウンロード
 
-[![Download APK](https://img.shields.io/badge/Android-APKをダウンロード-brightgreen?style=for-the-badge&logo=android)](https://github.com/884poki-beep/Build-DONIX-Android/releases/download/v1.0.1/app-release.apk)
+[![Download APK](https://img.shields.io/badge/Android-APKをダウンロード-brightgreen?style=for-the-badge&logo=android)](https://github.com/884poki-beep/Build-DONIX-Android/releases/download/v1.0.2/app-release.apk)
 <h2>📱 DONIX Music Player スクリーンショット</h2>
 
 <p align="center">
