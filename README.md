@@ -1,4 +1,22 @@
-# DONIX Music Player — Androidテスト版
+# 🎵 DONIX Music Player
+
+懐かしいMDウォークマンをイメージした
+Android音楽プレイヤーです。
+
+## 📥 Androidアプリをダウンロード
+
+[![Download APK](https://img.shields.io/badge/Android-APKをダウンロード-brightgreen?style=for-the-badge&logo=android)](https://github.com/884poki-beep/Build-DONIX-Android/releases/download/v1.0.1/app-release.apk)
+
+### 🎧 主な機能
+
+- MP3音楽再生
+- アルバムジャケット表示
+- 歌詞表示
+- MD交換アニメーション
+- 本体カラー変更
+- プレイリスト機能
+
+**開発：dongurikobo**# DONIX Music Player — Androidテスト版
 
 Ver.14のWebアプリを、オフラインで動くAndroid WebViewに同梱したプロジェクトです。
 
