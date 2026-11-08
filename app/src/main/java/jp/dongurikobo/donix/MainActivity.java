@@ -83,6 +83,14 @@ public class MainActivity extends Activity {
         PlaybackState.PLAYBACK_POSITION_UNKNOWN, playing ? 1f : 0f).build());
     mediaSession.setActive(true);
     showMediaNotification();
+    Intent playbackIntent = new Intent(this, PlaybackService.class);
+    if (playing) {
+      playbackIntent.setAction(PlaybackService.ACTION_START);
+      try { startForegroundService(playbackIntent); } catch (Exception e) { android.util.Log.w("DONIX", "Cannot start playback service", e); }
+    } else {
+      playbackIntent.setAction(PlaybackService.ACTION_STOP);
+      try { startService(playbackIntent); } catch (Exception ignored) {}
+    }
   }
 
   private PendingIntent actionIntent(String action, int requestCode) {
