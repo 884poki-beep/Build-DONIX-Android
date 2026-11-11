@@ -19,7 +19,8 @@ public class PlaybackService extends Service {
   public static final String ACTION_START = "jp.dongurikobo.donix.PLAYBACK_START";
   public static final String ACTION_STOP = "jp.dongurikobo.donix.PLAYBACK_STOP";
   private static final String CHANNEL = "donix_playback";
-  private static final int ID = 103;
+  private static final int ID = 104; // Separate from MainActivity media controls (103).
+  // Sharing 103 made the service notification overwrite/lose the media notification.
   private PowerManager.WakeLock playbackWakeLock;
 
   private void acquirePlaybackWakeLock() {
@@ -58,6 +59,7 @@ public class PlaybackService extends Service {
         .setContentText("音楽を再生中")
         .setContentIntent(open)
         .setOnlyAlertOnce(true)
+        .setCategory(Notification.CATEGORY_TRANSPORT)
         .setOngoing(true)
         .build();
     if (Build.VERSION.SDK_INT >= 29) {
