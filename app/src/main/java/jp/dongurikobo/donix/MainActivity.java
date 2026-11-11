@@ -199,6 +199,11 @@ public class MainActivity extends Activity {
       requestPermissions(new String[]{Manifest.permission.POST_NOTIFICATIONS}, 1003);
     }
     web = new WebView(this);
+    // Keep the WebView renderer important while the app is backgrounded.
+    // This does not override Android battery policies or guarantee playback.
+    if (Build.VERSION.SDK_INT >= 26) {
+      web.setRendererPriorityPolicy(WebView.RENDERER_PRIORITY_IMPORTANT, true);
+    }
     web.addJavascriptInterface(new CoverBridge(), "DonixNative");
     setContentView(web);
     WebSettings s = web.getSettings();
@@ -309,6 +314,12 @@ web.setWebViewClient(new WebViewClient() {
   }
   @Override public void onBackPressed() {
     if (web.canGoBack()) web.goBack(); else super.onBackPressed();
+  }
+  @Override protected void onResume() {
+    super.onResume();
+    // Refresh the native notification if the WebView was suspended in background.
+    if (web != null) web.evaluateJavascript(
+      "if(window.DonixSyncMedia)window.DonixSyncMedia()", null);
   }
   @Override protected void onDestroy() { currentActivity = null; if (notificationManager != null) notificationManager.cancel(NOTIFICATION_ID); if (mediaSession != null) mediaSession.release(); if (pendingFiles != null) pendingFiles.onReceiveValue(null); web.destroy(); super.onDestroy(); }
 }
