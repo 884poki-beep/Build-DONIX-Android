@@ -135,19 +135,122 @@ h1{color:#fff9f4;text-shadow:0 3px 12px #08060e,0 0 15px #e660dd;font-size:clamp
 /* Keep the entire cover visible inside the spinning circular MD window. */
 </style></head><body><div class="boot-screen" id="bootScreen" role="status" aria-label="DONIX起動画面"><div class="boot-logo">DONIX</div><div class="boot-disc" aria-hidden="true"></div><div class="boot-rule"></div><div class="boot-credit">Powered by dongurikobo</div><div class="boot-model">D-WALK · DX-MD01</div><button class="boot-skip" id="bootSkip" type="button">♪ 起動音を鳴らして開く ›</button><div class="boot-sound-note">自動起動の場合は無音で開きます</div></div><main class="wrap"><h1>MINIDISC PLAYER</h1><div class="sub">RETRO PORTABLE AUDIO · CUSTOM COLOR EDITION</div><div class="scene"><div class="remote" aria-label="液晶リモコン"><div class="screen"><div class="status"><span id="state">■ STOP</span><span id="tracknum">TRACK --</span><span id="battery">▰▰▰</span></div><div class="title" id="lcd">NO DISC · 曲を読み込んでください</div></div><div class="remote-controls"><button id="prev" title="前の曲" aria-label="前の曲"><span class="transport-icon">◀◀</span></button><button id="play" title="再生・一時停止">▶</button><button id="next" title="次の曲" aria-label="次の曲"><span class="transport-icon">▶▶</span></button></div></div><div class="player" id="playerBody"><div class="lid"><div class="disc-window" aria-label="再生中に回転するMDディスク"><div class="disc-rotor" id="discRotor"><img class="rotor-art" id="rotorArt" alt=""></div></div><div class="circle"></div><div class="brand" aria-label="DONIX">DONIX</div><div class="slot"></div><div class="mdlabel">MD<small>D-WALK · DX-MD01</small></div></div><div class="hinge"></div><div class="disc-overlay" id="discOverlay"><div class="minidisc"><img id="discArt" alt="" hidden></div><strong id="discTitle">MINIDISC</strong><div class="disc-picker" id="discPicker" aria-label="MD選択"></div><div class="tray-actions"><button id="insertDisc">MDをセット</button><button id="addDisc">＋ 音楽追加</button><button id="closeDisc">CLOSE</button></div><div class="tray-hint">曲を選んでMDをセットしてください</div></div><button class="eject" id="eject">OPEN / EJECT</button></div></div><button class="external-eject" id="ejectVisible" type="button">⏏ OPEN / EJECT — MDを交換</button><div class="note">上部の液晶リモコンで操作できます。OPENで音楽を追加できます。</div><section class="panel"><div class="row"><label class="upload">＋ 音楽ファイルを選ぶ<input id="files" type="file" accept="audio/*,.mp3,.m4a,.wav,.ogg,.flac" multiple></label><button class="pill" id="clear">曲を取り出す</button></div><details class="donix-settings" id="donixSettings"><summary aria-label="設定メニューを開閉">⚙️ 設定・カスタマイズ <span class="settings-arrow" aria-hidden="true">⌄</span></summary><div class="settings-inner"><div class="row"><label>🎨 本体・リモコンカラー</label><div class="colors" id="colors"></div></div><div class="row"><button class="pill switch" id="shuffle" aria-pressed="false">🔀 シャッフル OFF</button><button class="pill switch" id="repeat" aria-pressed="false">🔁 リピート OFF</button></div><div class="row"><label for="volume">🔊 音量</label><input id="volume" type="range" min="0" max="1" step="0.01" value="0.8"></div><div class="row"><label for="cover">💿 MDジャケット（手動設定）</label><input id="cover" type="file" accept="image/*"></div></div></details><div class="row progress"><span id="elapsed">0:00</span><input id="seek" type="range" min="0" max="1000" value="0" aria-label="再生位置"><span id="duration">0:00</span></div><div class="library"><div class="row"><button class="pill" id="savePlaylist">＋ プレイリスト作成</button></div><div class="row"><input id="search" type="search" placeholder="曲名を検索" aria-label="曲名を検索"></div><div class="playlist-list" id="playlists"></div><div class="hint" id="storageHint">読み込んだ音楽を端末内に保存します。保存容量はブラウザによって異なります。</div></div><section class="lyrics-box" aria-label="歌詞"><h2>🎤 歌詞表示 <span id="lyricsSource" style="font-size:11px;font-weight:normal"></span></h2><div class="lyrics-text" id="lyricsText" aria-live="polite">曲を選ぶと、MP3に埋め込まれた歌詞を表示します。</div><p class="lyrics-help">ID3タグの歌詞（USLT）に対応。歌詞がない曲は表示されません。埋め込みジャケット（APIC）も自動で読み込みます。</p></section><div style="font-size:13px;font-weight:bold;margin-top:15px">DISC TRACKS <span id="count">(0曲)</span></div><ol class="tracklist" id="list"><li class="empty">音楽ファイルを選ぶと、ここに曲が表示されます。</li></ol></section><details class="artist-drawer" id="artistDrawer"><summary aria-label="関連アーティストを開閉">♫ DONIX MUSIC · 関連アーティスト <span class="artist-arrow" aria-hidden="true">⌄</span></summary><section class="artist-credits" aria-labelledby="artistCreditsHeading"><h2 id="artistCreditsHeading">♫ DONIX MUSIC · 関連アーティスト</h2><p>DONIXプレイヤーの制作に関わる dongurikobo のアーティスト。各音楽配信サービスの公式アーティストページへ移動できます。</p><div class="artist-grid"><article class="artist-card"><div class="artist-profile"><img class="artist-avatar" id="avatar-poki" src="poki.jpg" alt="pokiのアーティストイラスト"><div><h3>poki</h3></div></div><div class="role">dongurikobo · Composer</div><div class="artist-links"><a class="apple" href="https://music.apple.com/jp/artist/poki/1694884736" target="_blank" rel="noopener noreferrer" aria-label="pokiのApple Musicアーティストページ">♪ Apple Music ↗</a><a class="spotify" href="https://open.spotify.com/artist/39FwSlEAMeSl1xccRqU37n" target="_blank" rel="noopener noreferrer" aria-label="pokiのSpotifyアーティストページ">◉ Spotify ↗</a></div></article><article class="artist-card"><div class="artist-profile"><img class="artist-avatar" id="avatar-mochi" src="mochi.jpg" alt="mochiのアーティストイラスト"><div><h3>mochi</h3></div></div><div class="role">dongurikobo · Artist</div><div class="artist-links"><a class="apple" href="https://music.apple.com/jp/artist/mochi/1414839803" target="_blank" rel="noopener noreferrer" aria-label="mochiのApple Musicアーティストページ">♪ Apple Music ↗</a><a class="spotify" href="https://open.spotify.com/artist/73gjp1iYajnD9UqNMbGRVS" target="_blank" rel="noopener noreferrer" aria-label="mochiのSpotifyアーティストページ">◉ Spotify ↗</a></div></article></div></section></details><footer>DONIX D-WALK DX-MD01 — dongurikobo オリジナル音楽プレイヤー。実在メーカーの公式製品ではありません。<br>音楽は端末内で保存・再生され、サーバーへアップロードされません。</footer></main><audio id="audio" preload="metadata"></audio><script>
 document.getElementById('ejectVisible').addEventListener('click',()=>document.getElementById('eject').click());
-const $=id=>document.getElementById(id),audio=$('audio');let tracks=[],idx=-1,shuffle=false,repeat=false,playlist='すべて',playlists=JSON.parse(localStorage.getItem('mdPlaylists')||'{"お気に入り":[]}');let db;
+const $=id=>document.getElementById(id);
+const nativeMode=!!(window.DonixNative && window.DonixNative.nativePlayback && window.DonixNative.nativePlayback());
+// On Android, the real audio engine belongs to the foreground PlaybackService.
+// This small adapter preserves the original MD controls, lyrics and animations.
+class NativeAudioAdapter {
+ constructor(){this.paused=true;this.ended=false;this._position=0;this._duration=NaN;this._volume=.8;this.onplay=null;this.onpause=null;this.ontimeupdate=null;this.onended=null;this.playbackRate=1}
+ get currentTime(){return this._position}
+ set currentTime(seconds){const v=Math.max(0,Number(seconds)||0);this._position=v;window.DonixNative.seek(Math.round(v*1000));this.ontimeupdate?.()}
+ get duration(){return this._duration}
+ get volume(){return this._volume}
+ set volume(v){this._volume=Math.max(0,Math.min(1,Number(v)||0));window.DonixNative.setVolume(this._volume)}
+ load(){}
+ removeAttribute(){}
+ play(){if(!tracks[idx])return Promise.resolve();this.paused=false;this.ended=false;nativeSelect(idx,true);this.onplay?.();return Promise.resolve()}
+ pause(){if(this.paused)return;this.paused=true;++nativeGeneration;if(nativeRequestId&&tracks[idx]?.id===nativeRequestId)nativeSelect(idx,false);else nativeRequestId='';window.DonixNative.pause();this.onpause?.()}
+}
+const audio=nativeMode?new NativeAudioAdapter():$('audio');
+let tracks=[],idx=-1,shuffle=false,repeat=false,playlist='すべて',playlists=JSON.parse(localStorage.getItem('mdPlaylists')||'{"お気に入り":[]}');let db;
+let nativeGeneration=0,nativeLastState=null,nativeRequestId='',lastNativeArtId='',lastNativeArtValue=null,libraryEpoch=0;
+const migrationPromises=new Map();
+function pushNativeQueue(){
+ if(!nativeMode)return;
+ const allowed=tracks.filter(t=>playlist==='すべて'||(playlists[playlist]||[]).includes(t.id)).map(t=>t.id);
+ window.DonixNative.setQueue(JSON.stringify({tracks:tracks.map(t=>({id:t.id,name:t.name})),allowed,shuffle,repeat}));
+}
+async function ensureNativeSource(track){
+ if(!nativeMode)return true;
+ try{if(window.DonixNative.hasSource(track.id))return true}catch(e){}
+ if(migrationPromises.has(track.id))return migrationPromises.get(track.id);
+ const epoch=libraryEpoch;
+ const task=(async()=>{
+  if(!track.file||!track.file.size)return false;
+  if(!window.DonixNative.beginTransfer(track.id,track.file.size))return false;
+  try{
+   const CHUNK=96*1024;
+   for(let start=0;start<track.file.size;start+=CHUNK){
+    if(epoch!==libraryEpoch)throw Error('Library cleared');
+    let bytes=new Uint8Array(await track.file.slice(start,start+CHUNK).arrayBuffer());
+    // bounded chunks, so a multi-megabyte MP3 never enters the JS bridge at once
+    let raw='';for(let i=0;i<bytes.length;i+=8192)raw+=String.fromCharCode(...bytes.subarray(i,i+8192));
+    if(!window.DonixNative.appendTransfer(track.id,btoa(raw)))throw Error('Cannot copy file');
+    if((start/CHUNK)%16===0)await new Promise(resolve=>setTimeout(resolve,0));
+   }
+   if(epoch!==libraryEpoch||!window.DonixNative.finishTransfer(track.id))throw Error('Cannot save file');
+   return true;
+  }catch(e){console.warn('ネイティブ再生用の曲変換に失敗',track.name,e);window.DonixNative.abortTransfer(track.id);return false}
+ })();
+ migrationPromises.set(track.id,task);
+ try{return await task}finally{migrationPromises.delete(track.id)}
+}
+async function nativeSelect(i,autoplay){
+ const token=++nativeGeneration,t=tracks[i];if(!t)return;
+ if(autoplay)window.DonixNative.beginPlayback();
+ nativeRequestId=t.id;
+ const ready=await ensureNativeSource(t);
+ if(token!==nativeGeneration||tracks[idx]!==t)return;
+ if(!ready){nativeRequestId='';audio.paused=true;window.DonixNative.pause();refresh();$('storageHint').textContent='この曲のバックグラウンド再生準備に失敗しました。空き容量を確認し、音楽を選び直してください。';return}
+ window.DonixNative.selectTrack(t.id,!!autoplay);
+}
+// One-time migration for tracks saved by older DONIX versions. New imports use
+// persistent Android document URIs, requiring no duplicate file storage.
+async function migrateLegacyLibrary(){
+ if(!nativeMode)return;
+ const missing=tracks.filter(t=>!window.DonixNative.hasSource(t.id));
+ if(!missing.length)return;
+ for(let i=0;i<missing.length;i++){
+  const t=missing[i];if(!tracks.includes(t))return;
+  $('storageHint').textContent='バックグラウンド再生用に既存の曲を準備中… ('+(i+1)+'/'+missing.length+')';
+  if(!await ensureNativeSource(t)){
+   $('storageHint').textContent='一部の曲の準備ができませんでした。空き容量を確認するか、曲を選び直してください。';
+   return;
+  }
+ }
+ $('storageHint').textContent='バックグラウンド再生の準備が完了しました。';
+}
+window.DonixNativeEvent=function(json){
+ if(!nativeMode)return;
+ try{
+  let s=typeof json==='string'?JSON.parse(json):json;nativeLastState=s;
+  if(!s.id){audio.paused=true;return}
+  if(nativeRequestId&&s.id!==nativeRequestId)return;
+  if(nativeRequestId===s.id)nativeRequestId='';
+  const i=tracks.findIndex(t=>t.id===s.id);
+  const changed=i>=0&&i!==idx;
+  if(changed){idx=i;lastNativeArtId='';lastNativeArtValue=null}
+  const wasPaused=audio.paused;
+  audio.paused=!s.playing;audio.ended=!!s.ended;
+  audio._position=Math.max(0,Number(s.position||0)/1000);
+  audio._duration=Math.max(0,Number(s.duration||0)/1000);
+  if(s.error)$('storageHint').textContent=s.error;
+  if(changed||wasPaused!==audio.paused){refresh();if(changed)updateMedia()}
+  audio.ontimeupdate?.();
+ }catch(e){console.warn('Invalid native playback state',e)}
+};
+window.DonixPullState=function(){if(!nativeMode)return;try{const state=window.DonixNative.getState();if(state)window.DonixNativeEvent(state)}catch(e){}};
+
 const palette=[['シルバー','#a1a9b6','#e4e7ed','#646d7c','#4b5464'],['ブルー','#688fbf','#c6ddf6','#33567f','#244365'],['ブラック','#464b55','#a5acb7','#242a33','#171d27'],['ピンク','#ce8eae','#f5d7e6','#9b547c','#793a5e'],['ゴールド','#c3ad7b','#f1e2bb','#877449','#695937'],['パープル','#9887bb','#e2d7f4','#62527f','#4c3d69']];
 function color(n){let p=palette[n];['--metal','--light','--dark','--edge'].forEach((k,i)=>document.documentElement.style.setProperty(k,p[i+1]));localStorage.setItem('mdcolor',n);document.querySelectorAll('.swatch').forEach((b,i)=>b.setAttribute('aria-pressed',String(i===n)))}palette.forEach((p,i)=>{let b=document.createElement('button');b.className='swatch';b.title=p[0];b.setAttribute('aria-label',p[0]);b.style.background=p[1];b.onclick=()=>color(i);$('colors').append(b)});color(Math.max(0,Math.min(palette.length-1,Number(localStorage.getItem('mdcolor'))||0)));
 function time(s){return Number.isFinite(s)?Math.floor(s/60)+':'+String(Math.floor(s%60)).padStart(2,'0'):'0:00'}
 function store(mode='readonly'){return db.transaction('songs',mode).objectStore('songs')}
 function persist(song){if(!db)return;let r=store('readwrite').put({id:song.id,name:song.name,file:song.file,art:song.art||null,lyrics:song.lyrics||null});r.onerror=()=>{$('storageHint').textContent='保存容量が不足した可能性があります。再生はできますが、再起動後に曲が消える場合があります。'}}
-function showPlaylists(){$('playlists').replaceChildren();['すべて',...Object.keys(playlists)].forEach(name=>{let b=document.createElement('button');b.textContent=name;b.className=name===playlist?'selected':'';b.onclick=()=>{playlist=name;showPlaylists();refresh()};$('playlists').append(b)})}
+function showPlaylists(){$('playlists').replaceChildren();['すべて',...Object.keys(playlists)].forEach(name=>{let b=document.createElement('button');b.textContent=name;b.className=name===playlist?'selected':'';b.onclick=()=>{playlist=name;showPlaylists();pushNativeQueue();refresh()};$('playlists').append(b)})}
 function visible(t){return (playlist==='すべて'||(playlists[playlist]||[]).includes(t.id))&&t.name.toLowerCase().includes($('search').value.toLowerCase())}
 function setLCD(value){const el=$('lcd');if(el.dataset.value===value)return;el.dataset.value=value;el.replaceChildren();const span=document.createElement('span');span.className='marquee-text';span.textContent=value;el.append(span);requestAnimationFrame(()=>{const overflow=span.scrollWidth-el.clientWidth;if(overflow>5){span.classList.add('scrolling');span.style.setProperty('--scroll-distance',`-${overflow+48}px`)}else span.classList.remove('scrolling')})}
 function refresh(){$('playerBody').classList.toggle('is-playing',!audio.paused&&!audio.ended&&idx>=0);let t=tracks[idx];setLCD(t?t.name:'NO DISC · 曲を読み込んでください');$('tracknum').textContent=t?'TRACK '+String(idx+1).padStart(2,'0'):'TRACK --';$('state').textContent=audio.paused?'■ STOP':'▶ PLAY';$('play').textContent=audio.paused?'▶':'Ⅱ';$('count').textContent='('+tracks.filter(visible).length+'曲)';$('discTitle').textContent=t?t.name:'MINIDISC';$('lyricsText').textContent=t?(t.lyrics||'この曲には埋め込み歌詞がありません。'):'曲を選ぶと、MP3に埋め込まれた歌詞を表示します。';$('lyricsSource').textContent=t&&t.lyrics?'（MP3から取得）':'';$('discArt').hidden=!(t&&t.art);if(t&&t.art)$('discArt').src=t.art;$('discRotor').classList.toggle('has-art',!!(t&&t.art));if(t&&t.art){$('rotorArt').src=t.art}else{$('rotorArt').removeAttribute('src')};let list=$('list');list.replaceChildren();let shown=tracks.map((t,i)=>({t,i})).filter(({t})=>visible(t));if(!shown.length){let li=document.createElement('li');li.className='empty';li.textContent='曲がありません。音楽ファイルを追加してください。';list.append(li)}shown.forEach(({t,i})=>{let li=document.createElement('li');li.className=i===idx?'active':'';let n=document.createElement('b');n.textContent=String(i+1).padStart(2,'0');let name=document.createElement('span');name.textContent=t.name;li.append(n,name);li.onclick=()=>load(i,true);if(playlist!=='すべて'){let remove=document.createElement('button');remove.textContent='外す';remove.onclick=e=>{e.stopPropagation();playlists[playlist]=playlists[playlist].filter(id=>id!==t.id);saveLists();refresh()};li.append(remove)}else{let add=document.createElement('button');add.textContent='☆';add.title='お気に入りに追加';add.onclick=e=>{e.stopPropagation();if(!playlists['お気に入り'].includes(t.id))playlists['お気に入り'].push(t.id);saveLists();add.textContent='★'};li.append(add)}list.append(li)})}
-function updateMedia(){let t=tracks[idx];if(!t)return; if('mediaSession' in navigator){try{let data={title:t.name,artist:'MD PLAYER',album:'MINIDISC'};if(t.art)data.artwork=[{src:t.art,sizes:'512x512',type:'image/png'}];navigator.mediaSession.metadata=new MediaMetadata(data);navigator.mediaSession.playbackState=audio.paused?'paused':'playing'}catch(e){console.warn('web media',e)}} if(window.DonixNative&&window.DonixNative.updateMedia){try{window.DonixNative.updateMedia(t.name,t.art||'',!audio.paused&&!audio.ended)}catch(e){console.warn('native media',e)}}}
+function updateMedia(){let t=tracks[idx];if(!t)return;
+ if(nativeMode){if(t.art&&(lastNativeArtId!==t.id||lastNativeArtValue!==t.art)){
+  lastNativeArtId=t.id;lastNativeArtValue=t.art;
+  try{window.DonixNative.setArtwork(t.id,t.art)}catch(e){console.warn('native artwork',e)}
+ }return}
+ if('mediaSession' in navigator){try{let data={title:t.name,artist:'MD PLAYER',album:'MINIDISC'};if(t.art)data.artwork=[{src:t.art,sizes:'512x512',type:'image/png'}];navigator.mediaSession.metadata=new MediaMetadata(data);navigator.mediaSession.playbackState=audio.paused?'paused':'playing'}catch(e){console.warn('web media',e)}}
+}
 window.DonixMediaCommand=function(action){if(action==='play')audio.play().catch(()=>{});else if(action==='pause')audio.pause();else if(action==='toggle'){if(audio.paused)audio.play().catch(()=>{});else audio.pause()}else if(action==='next')next(1);else if(action==='prev')next(-1)};
-function load(i,autoplay){if(i<0||i>=tracks.length)return;idx=i;audio.src=tracks[i].url;audio.load();refresh();updateMedia();if(autoplay)audio.play().catch(()=>{})}
+function load(i,autoplay){if(i<0||i>=tracks.length)return;idx=i;
+ if(nativeMode){audio._position=0;audio._duration=NaN;audio.paused=!autoplay;audio.ended=false;refresh();updateMedia();nativeSelect(i,!!autoplay);return}
+ audio.src=tracks[i].url;audio.load();refresh();updateMedia();if(autoplay)audio.play().catch(()=>{})}
 function next(dir=1){if(!tracks.length)return;let allowed=tracks.map((t,i)=>({t,i})).filter(({t})=>playlist==='すべて'||(playlists[playlist]||[]).includes(t.id)).map(x=>x.i);if(!allowed.length)allowed=tracks.map((_,i)=>i);let pos=allowed.indexOf(idx),newpos=shuffle&&allowed.length>1?(pos+1+Math.floor(Math.random()*(allowed.length-1)))%allowed.length:(pos+dir+allowed.length)%allowed.length;load(allowed[newpos],true)}
 // ID3v2.3 / ID3v2.4 metadata reader. Runs locally; no network calls.
 function id3Text(bytes,encoding){
@@ -179,7 +282,7 @@ async function extractID3(file){
 }
 async function enrichSong(song){if(!song||!song.file||song.metadataChecked)return;try{let data=await extractID3(song.file);if(data.art&&!song.art)song.art=data.art;if(!song.art&&window.DonixNative){try{let nativeArt=window.DonixNative.getCover(song.file.name);if(nativeArt)song.art=nativeArt}catch(e){console.warn('Native cover fallback',e)}}if(data.lyrics&&!song.lyrics)song.lyrics=data.lyrics;persist(song)}catch(e){console.warn('ID3タグを読み取れませんでした',e)}song.metadataChecked=true;if(tracks[idx]===song){refresh();updateMedia()}else if($('playerBody').classList.contains('lid-open'))renderDiscPicker()}
 function addSong(record){if(tracks.some(t=>t.id===record.id))return;let url=URL.createObjectURL(record.file);record.url=url;tracks.push(record)}
-$('files').addEventListener('change',e=>{let fs=[...e.target.files].filter(f=>f.type.startsWith('audio/')||/\.(mp3|m4a|wav|ogg|flac)$/i.test(f.name));let wasEmpty=!tracks.length;fs.forEach(f=>{let t={id:crypto.randomUUID(),name:f.name.replace(/\.[^.]+$/,''),file:f,art:null,lyrics:null};addSong(t);persist(t);enrichSong(t)});if(wasEmpty&&tracks.length)load(0,false);refresh();if($('playerBody').classList.contains('lid-open')){chosenDisc=tracks.length-1;renderDiscPicker()}e.target.value=''});
+$('files').addEventListener('change',e=>{let fs=[...e.target.files].filter(f=>f.type.startsWith('audio/')||/\.(mp3|m4a|wav|ogg|flac)$/i.test(f.name));let wasEmpty=!tracks.length;fs.forEach(f=>{let t={id:crypto.randomUUID(),name:f.name.replace(/\.[^.]+$/,''),file:f,art:null,lyrics:null};addSong(t);if(nativeMode)window.DonixNative.registerTrack(t.id,f.name,f.size);persist(t);enrichSong(t)});pushNativeQueue();if(wasEmpty&&tracks.length)load(0,false);refresh();if($('playerBody').classList.contains('lid-open')){chosenDisc=tracks.length-1;renderDiscPicker()}e.target.value=''});
 let chosenDisc=-1;
 function renderDiscPicker(){let box=$('discPicker');box.replaceChildren();if(!tracks.length){let m=document.createElement('span');m.className='tray-hint';m.textContent='MDがありません。音楽を追加してください';box.append(m);$('discTitle').textContent='NO DISC';$('discArt').hidden=true;return}
  if(chosenDisc<0||chosenDisc>=tracks.length)chosenDisc=Math.max(0,idx);
@@ -193,14 +296,18 @@ $('closeDisc').onclick=closeTray;
 $('addDisc').onclick=()=>$('files').click();
 $('insertDisc').onclick=()=>{if(!tracks.length){$('files').click();return}let chosen=chosenDisc;const disc=document.querySelector('.minidisc');disc.classList.remove('ejecting');disc.classList.add('inserting');setTimeout(()=>{closeTray();load(chosen,true);disc.classList.remove('inserting')},530)};
 $('play').onclick=()=>{if(!tracks.length){$('files').click();return}if(idx<0)load(0,false);audio.paused?audio.play().catch(()=>{}):audio.pause()};$('prev').onclick=()=>{if(audio.currentTime>3){audio.currentTime=0;return}next(-1)};$('next').onclick=()=>next(1);
-$('clear').onclick=()=>{if(!confirm('保存した曲をすべて削除しますか？'))return;audio.pause();audio.removeAttribute('src');audio.load();tracks.forEach(t=>URL.revokeObjectURL(t.url));tracks=[];idx=-1;if(db)store('readwrite').clear();$('seek').value=0;$('elapsed').textContent='0:00';$('duration').textContent='0:00';refresh()};
-$('shuffle').onclick=()=>{shuffle=!shuffle;$('shuffle').setAttribute('aria-pressed',String(shuffle));$('shuffle').textContent='🔀 シャッフル '+(shuffle?'ON':'OFF')};$('repeat').onclick=()=>{repeat=!repeat;$('repeat').setAttribute('aria-pressed',String(repeat));$('repeat').textContent='🔁 リピート '+(repeat?'ON':'OFF')};$('volume').oninput=e=>audio.volume=Number(e.target.value);audio.volume=.8;
+$('clear').onclick=()=>{if(!confirm('保存した曲をすべて削除しますか？'))return;audio.pause();if(nativeMode){++libraryEpoch;++nativeGeneration;nativeRequestId='';window.DonixNative.clearLibrary()}audio.removeAttribute('src');audio.load();tracks.forEach(t=>URL.revokeObjectURL(t.url));tracks=[];idx=-1;pushNativeQueue();if(db)store('readwrite').clear();$('seek').value=0;$('elapsed').textContent='0:00';$('duration').textContent='0:00';refresh()};
+$('shuffle').onclick=()=>{shuffle=!shuffle;$('shuffle').setAttribute('aria-pressed',String(shuffle));$('shuffle').textContent='🔀 シャッフル '+(shuffle?'ON':'OFF');pushNativeQueue()};$('repeat').onclick=()=>{repeat=!repeat;$('repeat').setAttribute('aria-pressed',String(repeat));$('repeat').textContent='🔁 リピート '+(repeat?'ON':'OFF');pushNativeQueue()};$('volume').oninput=e=>audio.volume=Number(e.target.value);audio.volume=.8;
 audio.ontimeupdate=()=>{$('elapsed').textContent=time(audio.currentTime);$('duration').textContent=time(audio.duration);$('seek').value=audio.duration?Math.round(audio.currentTime/audio.duration*1000):0;if('mediaSession'in navigator&&audio.duration)navigator.mediaSession.setPositionState?.({duration:audio.duration,playbackRate:audio.playbackRate,position:audio.currentTime})};$('seek').oninput=e=>{if(audio.duration)audio.currentTime=Number(e.target.value)/1000*audio.duration};audio.onplay=()=>{refresh();updateMedia()};audio.onpause=()=>{refresh();updateMedia()};audio.onended=()=>{if(repeat){audio.currentTime=0;audio.play().catch(()=>{})}else if(idx<tracks.length-1||shuffle)next(1);else refresh()};
-$('search').oninput=refresh;function saveLists(){localStorage.setItem('mdPlaylists',JSON.stringify(playlists));showPlaylists()}$('savePlaylist').onclick=()=>{let name=prompt('新しいプレイリスト名');if(!name||!name.trim())return;name=name.trim();if(name==='すべて'||playlists[name])return alert('別の名前を入力してください');playlists[name]=[];playlist=name;saveLists();refresh()};
+$('search').oninput=refresh;function saveLists(){localStorage.setItem('mdPlaylists',JSON.stringify(playlists));showPlaylists();pushNativeQueue()}$('savePlaylist').onclick=()=>{let name=prompt('新しいプレイリスト名');if(!name||!name.trim())return;name=name.trim();if(name==='すべて'||playlists[name])return alert('別の名前を入力してください');playlists[name]=[];playlist=name;saveLists();refresh()};
 $('cover').onchange=async e=>{let f=e.target.files[0];if(!f||idx<0){alert('先に曲を選択してください');return}if(f.size>4*1024*1024){alert('4MB以下の画像を選んでください');return}let reader=new FileReader();reader.onload=()=>{tracks[idx].art=reader.result;persist(tracks[idx]);refresh();updateMedia()};reader.readAsDataURL(f);e.target.value=''};
-if('mediaSession'in navigator){for(let [action,fn] of Object.entries({play:()=>audio.play(),pause:()=>audio.pause(),previoustrack:()=>next(-1),nexttrack:()=>next(1),seekbackward:()=>audio.currentTime=Math.max(0,audio.currentTime-10),seekforward:()=>audio.currentTime=Math.min(audio.duration||0,audio.currentTime+10)})){try{navigator.mediaSession.setActionHandler(action,fn)}catch{}}}
-try{let request=indexedDB.open('md-walkman-library',1);request.onupgradeneeded=()=>{request.result.createObjectStore('songs',{keyPath:'id'})};request.onsuccess=()=>{db=request.result;let r=store().getAll();r.onsuccess=()=>{r.result.forEach(t=>{addSong(t);if(!t.art||!t.lyrics)enrichSong(tracks.find(x=>x.id===t.id))});if(tracks.length)load(0,false);refresh()}};request.onerror=()=>{$('storageHint').textContent='このブラウザでは曲の保存ができません。読み込んだ曲は今回のみ再生できます。'}}catch{}
-showPlaylists();refresh();if('serviceWorker'in navigator&&location.protocol==='https:')navigator.serviceWorker.register('./sw.js').catch(()=>{});
+if(!nativeMode&&'mediaSession'in navigator){for(let [action,fn] of Object.entries({play:()=>audio.play(),pause:()=>audio.pause(),previoustrack:()=>next(-1),nexttrack:()=>next(1),seekbackward:()=>audio.currentTime=Math.max(0,audio.currentTime-10),seekforward:()=>audio.currentTime=Math.min(audio.duration||0,audio.currentTime+10)})){try{navigator.mediaSession.setActionHandler(action,fn)}catch{}}}
+try{let request=indexedDB.open('md-walkman-library',1);request.onupgradeneeded=()=>{request.result.createObjectStore('songs',{keyPath:'id'})};request.onsuccess=()=>{db=request.result;let r=store().getAll();r.onsuccess=()=>{r.result.forEach(t=>{addSong(t);if(!t.art||!t.lyrics)enrichSong(tracks.find(x=>x.id===t.id))});pushNativeQueue();
+ if(tracks.length){if(nativeMode){const saved=nativeLastState;const n=(saved&&saved.id)?tracks.findIndex(t=>t.id===saved.id):-1;
+  if(n>=0){idx=n;window.DonixNativeEvent(saved)}else{idx=0;refresh();updateMedia()}}
+  else load(0,false)}
+ refresh();if(nativeMode)setTimeout(migrateLegacyLibrary,1000)}};request.onerror=()=>{$('storageHint').textContent='このブラウザでは曲の保存ができません。読み込んだ曲は今回のみ再生できます。'}}catch{}
+showPlaylists();refresh();if(nativeMode){window.DonixPullState();document.addEventListener('visibilitychange',()=>{if(!document.hidden)window.DonixPullState()})}if('serviceWorker'in navigator&&location.protocol==='https:')navigator.serviceWorker.register('./sw.js').catch(()=>{});
 
 // 起動ロゴは初回表示後に自動で消え、ボタンでもスキップできます。
 (()=>{const boot=document.getElementById('bootScreen');const hide=()=>{boot.classList.add('off');setTimeout(()=>boot.remove(),650)};document.getElementById('bootSkip').addEventListener('click',()=>{
