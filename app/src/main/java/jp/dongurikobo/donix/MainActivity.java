@@ -1,210 +1,282 @@
 package jp.dongurikobo.donix;
 
-import android.app.Activity;
-import android.app.Notification;
-import android.app.NotificationChannel;
-import android.app.NotificationManager;
-import android.app.PendingIntent;
 import android.Manifest;
-import android.content.pm.PackageManager;
-import android.content.BroadcastReceiver;
+import android.app.Activity;
+import android.content.ClipData;
+import android.content.ComponentName;
 import android.content.Context;
-import android.content.IntentFilter;
-import android.media.MediaMetadata;
-import android.media.session.MediaSession;
-import android.media.session.PlaybackState;
-import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
-import android.os.Build;
-import android.os.Handler;
-import android.os.Looper;
-import android.media.MediaMetadataRetriever;
+import android.content.Intent;
+import android.content.ServiceConnection;
+import android.content.pm.PackageManager;
 import android.database.Cursor;
+import android.media.MediaMetadataRetriever;
+import android.net.Uri;
+import android.os.Build;
+import android.os.Bundle;
+import android.os.Handler;
+import android.os.IBinder;
+import android.os.Looper;
 import android.provider.OpenableColumns;
 import android.util.Base64;
+import android.util.Log;
 import android.webkit.JavascriptInterface;
-import java.util.concurrent.ConcurrentHashMap;
-import android.os.Bundle;
-import android.content.Intent;
-import android.net.Uri;
-import android.webkit.WebView;
+import android.webkit.ValueCallback;
 import android.webkit.WebChromeClient;
 import android.webkit.WebSettings;
-import android.webkit.ValueCallback;
+import android.webkit.WebView;
 import android.webkit.WebViewClient;
-import android.webkit.PermissionRequest;
+import android.widget.Toast;
+
 import androidx.webkit.WebViewAssetLoader;
 
+import org.json.JSONObject;
+
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.LinkedHashSet;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+
+/** WebView renders the MD player; Android's independent service plays the music. */
 public class MainActivity extends Activity {
-  private static final String CHANNEL = "donix_playback";
-  private static final int NOTIFICATION_ID = 103;
-  private MediaSession mediaSession;
-  private NotificationManager notificationManager;
-  private boolean playing = false;
-  private String currentTitle = "DONIX Music Player";
-  private Bitmap currentArtwork;
-  private boolean hasTrack = false;
+  private static final int PICK_FILES = 42;
+  private static final String SOURCES = "donix_native_tracks";
   private final Handler mainHandler = new Handler(Looper.getMainLooper());
+  private final ConcurrentHashMap<String, String> covers = new ConcurrentHashMap<>();
+  private final Object transferLock = new Object();
+  private final Map<String, Transfer> transfers = new HashMap<>();
+  private final ArrayList<ImportedFile> pendingImports = new ArrayList<>();
+  private WebView web;
+  private ValueCallback<Uri[]> pendingFiles;
+  private volatile PlaybackService playback;
+  private boolean serviceBound;
+  private volatile boolean activityVisible;
+  private String queuedPlaylist;
 
-  private void runPlayerCommand(String command) {
-    if (web == null) return;
-    web.evaluateJavascript("window.DonixMediaCommand && window.DonixMediaCommand('" + command + "')", null);
-  }
-
-  private void updateNativeMedia(String title, String artwork, boolean isPlaying) {
-    if (mediaSession == null) return;
-    hasTrack = true;
-    currentTitle = title == null || title.isEmpty() ? "DONIX Music Player" : title;
-    playing = isPlaying;
-    currentArtwork = null;
-    if (artwork != null && artwork.startsWith("data:image/") && artwork.contains(",")) {
-      try {
-        String raw = artwork.substring(artwork.indexOf(',') + 1);
-        if (raw.length() < 3_000_000) {
-          byte[] bytes = Base64.decode(raw, Base64.DEFAULT);
-          BitmapFactory.Options opts = new BitmapFactory.Options();
-          opts.inSampleSize = 2;
-          currentArtwork = BitmapFactory.decodeByteArray(bytes, 0, bytes.length, opts);
-        }
-      } catch (Exception ignored) {}
+  private static class ImportedFile {
+    final String name, uri;
+    final long size;
+    ImportedFile(String name, long size, String uri) {
+      this.name = name; this.size = size; this.uri = uri;
     }
-    MediaMetadata.Builder meta = new MediaMetadata.Builder()
-      .putString(MediaMetadata.METADATA_KEY_TITLE, currentTitle)
-      .putString(MediaMetadata.METADATA_KEY_ARTIST, "DONIX Music Player")
-      .putString(MediaMetadata.METADATA_KEY_ALBUM, "MINIDISC");
-    if (currentArtwork != null) meta.putBitmap(MediaMetadata.METADATA_KEY_ALBUM_ART, currentArtwork);
-    mediaSession.setMetadata(meta.build());
-    long actions = PlaybackState.ACTION_PLAY | PlaybackState.ACTION_PAUSE
-      | PlaybackState.ACTION_PLAY_PAUSE | PlaybackState.ACTION_SKIP_TO_NEXT
-      | PlaybackState.ACTION_SKIP_TO_PREVIOUS;
-    mediaSession.setPlaybackState(new PlaybackState.Builder()
-      .setActions(actions)
-      .setState(playing ? PlaybackState.STATE_PLAYING : PlaybackState.STATE_PAUSED,
-        PlaybackState.PLAYBACK_POSITION_UNKNOWN, playing ? 1f : 0f).build());
-    mediaSession.setActive(true);
-    showMediaNotification();
-    Intent playbackIntent = new Intent(this, PlaybackService.class);
-    if (playing) {
-      playbackIntent.setAction(PlaybackService.ACTION_START);
-      try { startForegroundService(playbackIntent); } catch (Exception e) { android.util.Log.w("DONIX", "Cannot start playback service", e); }
-    } else {
-      playbackIntent.setAction(PlaybackService.ACTION_STOP);
-      try { startService(playbackIntent); } catch (Exception ignored) {}
+  }
+  private static class Transfer {
+    final File temp;
+    final FileOutputStream out;
+    final long length;
+    long written;
+    Transfer(File temp, FileOutputStream out, long length) {
+      this.temp = temp; this.out = out; this.length = length;
     }
   }
 
-  private PendingIntent actionIntent(String action, int requestCode) {
-    Intent intent = new Intent(this, MediaButtonReceiver.class);
-    intent.setAction("jp.dongurikobo.donix." + action);
-    return PendingIntent.getBroadcast(this, requestCode, intent,
-      PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
-  }
-
-  public static class MediaButtonReceiver extends BroadcastReceiver {
-    @Override public void onReceive(Context context, Intent intent) {
-      if (intent == null || intent.getAction() == null) return;
-      MainActivity activity = currentActivity;
-      if (activity == null) return;
-      String action = intent.getAction();
-      activity.mainHandler.post(() -> {
-        if (action.endsWith(".PLAY_PAUSE")) activity.runPlayerCommand("toggle");
-        else if (action.endsWith(".NEXT")) activity.runPlayerCommand("next");
-        else if (action.endsWith(".PREV")) activity.runPlayerCommand("prev");
-      });
+  private final ServiceConnection serviceConnection = new ServiceConnection() {
+    @Override public void onServiceConnected(ComponentName name, IBinder binder) {
+      playback = ((PlaybackService.LocalBinder) binder).getService();
+      serviceBound = true;
+      playback.setListener(MainActivity.this::dispatchPlayerState);
+      if (queuedPlaylist != null) playback.setQueue(queuedPlaylist);
+      dispatchPlayerState(playback.getSnapshot());
     }
-  }
-  private static volatile MainActivity currentActivity;
-
-  private void showMediaNotification() {
-    if (!hasTrack) return;
-    Intent launch = new Intent(this, MainActivity.class);
-    launch.setFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP | Intent.FLAG_ACTIVITY_CLEAR_TOP);
-    PendingIntent content = PendingIntent.getActivity(this, 10, launch,
-      PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
-    Notification.Action prev = new Notification.Action.Builder(
-      android.R.drawable.ic_media_previous, "前の曲", actionIntent("PREV", 11)).build();
-    Notification.Action toggle = new Notification.Action.Builder(
-      playing ? android.R.drawable.ic_media_pause : android.R.drawable.ic_media_play,
-      playing ? "一時停止" : "再生", actionIntent("PLAY_PAUSE", 12)).build();
-    Notification.Action next = new Notification.Action.Builder(
-      android.R.drawable.ic_media_next, "次の曲", actionIntent("NEXT", 13)).build();
-    Notification.Builder builder = Build.VERSION.SDK_INT >= 26
-      ? new Notification.Builder(this, CHANNEL) : new Notification.Builder(this);
-    builder.setSmallIcon(android.R.drawable.ic_media_play)
-      .setContentTitle(currentTitle).setContentText("DONIX Music Player")
-      .setContentIntent(content).setVisibility(Notification.VISIBILITY_PUBLIC)
-      .setOnlyAlertOnce(true).setShowWhen(false)
-      .addAction(prev).addAction(toggle).addAction(next)
-      .setStyle(new Notification.MediaStyle().setMediaSession(mediaSession.getSessionToken())
-        .setShowActionsInCompactView(0, 1, 2));
-    if (currentArtwork != null) builder.setLargeIcon(currentArtwork);
-    if (Build.VERSION.SDK_INT < 33 || checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED) {
-      notificationManager.notify(NOTIFICATION_ID, builder.build());
+    @Override public void onServiceDisconnected(ComponentName name) {
+      playback = null;
+      serviceBound = false;
     }
-  }
+  };
 
-  private void setupMediaSession() {
-    notificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
-    if (Build.VERSION.SDK_INT >= 26) {
-      NotificationChannel channel = new NotificationChannel(CHANNEL, "DONIX 音楽再生",
-        NotificationManager.IMPORTANCE_LOW);
-      channel.setDescription("再生中の曲と操作ボタン");
-      notificationManager.createNotificationChannel(channel);
-    }
-    mediaSession = new MediaSession(this, "DONIX");
-    mediaSession.setFlags(MediaSession.FLAG_HANDLES_MEDIA_BUTTONS | MediaSession.FLAG_HANDLES_TRANSPORT_CONTROLS);
-    mediaSession.setCallback(new MediaSession.Callback() {
-      @Override public void onPlay() { mainHandler.post(() -> runPlayerCommand("play")); }
-      @Override public void onPause() { mainHandler.post(() -> runPlayerCommand("pause")); }
-      @Override public void onSkipToNext() { mainHandler.post(() -> runPlayerCommand("next")); }
-      @Override public void onSkipToPrevious() { mainHandler.post(() -> runPlayerCommand("prev")); }
+  private void dispatchPlayerState(String json) {
+    if (web == null || !activityVisible) return;
+    mainHandler.post(() -> {
+      if (web != null && activityVisible) web.evaluateJavascript(
+          "window.DonixNativeEvent && window.DonixNativeEvent(" + JSONObject.quote(json) + ")", null);
     });
   }
 
-  private final ConcurrentHashMap<String,String> covers = new ConcurrentHashMap<>();
-  public class CoverBridge {
-    @JavascriptInterface public void updateMedia(String title, String artwork, boolean isPlaying) {
-      mainHandler.post(() -> updateNativeMedia(title, artwork, isPlaying));
+  private static String safeId(String id) {
+    if (id == null || id.length() > 120 || !id.matches("[A-Za-z0-9_-]+")) return null;
+    return id;
+  }
+  private File nativeAudioDirectory() {
+    File folder = new File(getFilesDir(), "native_audio");
+    if (!folder.exists()) folder.mkdirs();
+    return folder;
+  }
+  private void sendCommand(String action, String trackId, boolean asForeground) {
+    Intent i = new Intent(this, PlaybackService.class).setAction(action);
+    if (trackId != null) i.putExtra(PlaybackService.EXTRA_TRACK_ID, trackId);
+    try {
+      if (asForeground) startForegroundService(i);
+      else if (playback != null) playback.selectTrack(trackId, false);
+      else startService(i);
+    } catch (Exception e) { Log.e("DONIX", "Playback command failed", e); }
+  }
+
+  public class NativeBridge {
+    @JavascriptInterface public boolean nativePlayback() { return true; }
+    @JavascriptInterface public String getState() {
+      return playback != null ? playback.getSnapshot() : "";
     }
     @JavascriptInterface public String getCover(String name) {
-      String cover = covers.get(name);
-      return cover == null ? "" : cover;
+      String value = covers.get(name);
+      return value == null ? "" : value;
+    }
+
+    /** The selected SAF URI is durable; no second copy is needed for newly added files. */
+    @JavascriptInterface public void registerTrack(String id, String name, long size) {
+      if (safeId(id) == null) return;
+      synchronized (pendingImports) {
+        int candidate = -1;
+        for (int i = 0; i < pendingImports.size(); i++) {
+          ImportedFile f = pendingImports.get(i);
+          if (f.name.equals(name) && (size == f.size || size < 0 || f.size < 0)) {
+            candidate = i; break;
+          }
+        }
+        if (candidate == -1) for (int i = 0; i < pendingImports.size(); i++) {
+          if (pendingImports.get(i).name.equals(name)) { candidate = i; break; }
+        }
+        if (candidate == -1) return;
+        ImportedFile found = pendingImports.remove(candidate);
+        getSharedPreferences(SOURCES, MODE_PRIVATE).edit()
+            .putString("song:" + id, "uri:" + found.uri).apply();
+      }
+    }
+
+    @JavascriptInterface public boolean hasSource(String id) {
+      if (safeId(id) == null) return false;
+      String ref = getSharedPreferences(SOURCES, MODE_PRIVATE).getString("song:" + id, null);
+      if (ref == null) return false;
+      if (ref.startsWith("uri:")) return true;
+      if (ref.startsWith("file:")) return new File(nativeAudioDirectory(), ref.substring(5)).isFile();
+      return false;
+    }
+
+    /** For tracks imported with an older app version: migrate IndexedDB's File in small chunks. */
+    @JavascriptInterface public boolean beginTransfer(String id, long length) {
+      if (safeId(id) == null || length <= 0 || length > 2_000_000_000L) return false;
+      synchronized (transferLock) {
+        if (transfers.containsKey(id)) return false;
+        File folder = nativeAudioDirectory();
+        if (folder.getUsableSpace() < length + 16L * 1024 * 1024) return false;
+        File temp = new File(folder, id + ".partial");
+        try {
+          transfers.put(id, new Transfer(temp, new FileOutputStream(temp), length));
+          return true;
+        } catch (IOException e) { Log.w("DONIX", "Could not create migration file", e); return false; }
+      }
+    }
+    @JavascriptInterface public boolean appendTransfer(String id, String chunk) {
+      synchronized (transferLock) {
+        Transfer t = transfers.get(id);
+        if (t == null || chunk == null || chunk.length() > 320_000) return false;
+        try {
+          byte[] bytes = Base64.decode(chunk, Base64.DEFAULT);
+          if (bytes.length == 0 || t.written + bytes.length > t.length) return false;
+          t.out.write(bytes);
+          t.written += bytes.length;
+          return true;
+        } catch (Exception e) { Log.w("DONIX", "Migration write failed", e); return false; }
+      }
+    }
+    @JavascriptInterface public boolean finishTransfer(String id) {
+      synchronized (transferLock) {
+        Transfer t = transfers.remove(id);
+        if (t == null) return false;
+        try {
+          t.out.close();
+          if (t.written != t.length) { t.temp.delete(); return false; }
+          File target = new File(nativeAudioDirectory(), id + ".audio");
+          if (target.exists() && !target.delete()) { t.temp.delete(); return false; }
+          if (!t.temp.renameTo(target)) { t.temp.delete(); return false; }
+          getSharedPreferences(SOURCES, MODE_PRIVATE).edit()
+              .putString("song:" + id, "file:" + target.getName()).apply();
+          return true;
+        } catch (Exception e) { t.temp.delete(); return false; }
+      }
+    }
+    @JavascriptInterface public void abortTransfer(String id) {
+      synchronized (transferLock) {
+        Transfer t = transfers.remove(id);
+        if (t == null) return;
+        try { t.out.close(); } catch (Exception ignored) { }
+        t.temp.delete();
+      }
+    }
+
+    @JavascriptInterface public void setQueue(String json) {
+      if (json == null || json.length() > 1_000_000) return;
+      mainHandler.post(() -> {
+        queuedPlaylist = json;
+        if (playback != null) playback.setQueue(json);
+      });
+    }
+    /** Start the foreground service immediately while the user is still in the app. */
+    @JavascriptInterface public void beginPlayback() {
+      mainHandler.post(() -> {
+        try { startForegroundService(new Intent(MainActivity.this, PlaybackService.class)
+            .setAction(PlaybackService.PREPARING)); }
+        catch (Exception e) { Log.w("DONIX", "Cannot prepare foreground service", e); }
+      });
+    }
+    @JavascriptInterface public void selectTrack(String id, boolean autoplay) {
+      if (safeId(id) == null) return;
+      mainHandler.post(() -> {
+        // Already-running foreground service can load a song even if the UI just backgrounded.
+        if (playback != null) playback.selectTrack(id, autoplay);
+        else sendCommand(autoplay ? PlaybackService.START_TRACK :
+            PlaybackService.SELECT_TRACK, id, autoplay);
+      });
+    }
+    @JavascriptInterface public void play() {
+      mainHandler.post(() -> sendCommand(PlaybackService.START_PLAY, null, true));
+    }
+    @JavascriptInterface public void pause() {
+      mainHandler.post(() -> {
+        if (playback != null) playback.pause();
+        else try { startService(new Intent(MainActivity.this, PlaybackService.class)
+            .setAction(PlaybackService.PAUSE)); } catch (Exception ignored) { }
+      });
+    }
+    @JavascriptInterface public void seek(long millis) {
+      mainHandler.post(() -> { if (playback != null) playback.seek((int) millis); });
+    }
+    @JavascriptInterface public void setVolume(double volume) {
+      mainHandler.post(() -> { if (playback != null) playback.setVolume((float) volume); });
+    }
+    @JavascriptInterface public void setArtwork(String id, String artwork) {
+      if (safeId(id) == null || artwork == null || artwork.length() > 3_000_000) return;
+      mainHandler.post(() -> { if (playback != null) playback.setArtwork(id, artwork); });
+    }
+    @JavascriptInterface public void stop() {
+      mainHandler.post(() -> { if (playback != null) playback.stopPlayback(); });
+    }
+    @JavascriptInterface public void clearLibrary() {
+      synchronized (transferLock) {
+        for (Transfer t : transfers.values()) {
+          try { t.out.close(); } catch (Exception ignored) { }
+          t.temp.delete();
+        }
+        transfers.clear();
+      }
+      File[] files = nativeAudioDirectory().listFiles();
+      if (files != null) for (File file : files) file.delete();
+      getSharedPreferences(SOURCES, MODE_PRIVATE).edit().clear().apply();
+      mainHandler.post(() -> { if (playback != null) playback.stopPlayback(); });
     }
   }
-  private void registerCover(Uri uri) {
-    if (uri == null) return;
-    String name = null;
-    try (Cursor cursor = getContentResolver().query(uri, new String[]{OpenableColumns.DISPLAY_NAME}, null, null, null)) {
-      if (cursor != null && cursor.moveToFirst()) name = cursor.getString(0);
-    } catch (Exception ignored) {}
-    if (name == null) return;
-    MediaMetadataRetriever retriever = new MediaMetadataRetriever();
-    try {
-      retriever.setDataSource(this, uri);
-      byte[] bytes = retriever.getEmbeddedPicture();
-      if (bytes != null && bytes.length > 0 && bytes.length < 5*1024*1024) {
-        String type = bytes.length > 3 && (bytes[0] & 255) == 255 ? "image/jpeg" : "image/png";
-        covers.put(name, "data:" + type + ";base64," + Base64.encodeToString(bytes, Base64.NO_WRAP));
-      }
-    } catch (Exception ignored) {} finally { try { retriever.release(); } catch (Exception ignored) {} }
-  }
-  private WebView web;
-  private ValueCallback<Uri[]> pendingFiles;
-  private static final int PICK_FILES = 42;
+
   @Override public void onCreate(Bundle state) {
     super.onCreate(state);
-    currentActivity = this;
-    setupMediaSession();
-    if (Build.VERSION.SDK_INT >= 33 && checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+    if (Build.VERSION.SDK_INT >= 33 && checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS)
+        != PackageManager.PERMISSION_GRANTED) {
       requestPermissions(new String[]{Manifest.permission.POST_NOTIFICATIONS}, 1003);
     }
     web = new WebView(this);
-    // Keep the WebView renderer important while the app is backgrounded.
-    // This does not override Android battery policies or guarantee playback.
-    if (Build.VERSION.SDK_INT >= 26) {
-      web.setRendererPriorityPolicy(WebView.RENDERER_PRIORITY_IMPORTANT, true);
-    }
-    web.addJavascriptInterface(new CoverBridge(), "DonixNative");
+    web.setRendererPriorityPolicy(WebView.RENDERER_PRIORITY_IMPORTANT, true);
+    web.addJavascriptInterface(new NativeBridge(), "DonixNative");
     setContentView(web);
     WebSettings s = web.getSettings();
     s.setJavaScriptEnabled(true);
@@ -213,69 +285,48 @@ public class MainActivity extends Activity {
     s.setAllowContentAccess(true);
     s.setMediaPlaybackRequiresUserGesture(false);
     WebViewAssetLoader loader = new WebViewAssetLoader.Builder()
-      .addPathHandler("/assets/", new WebViewAssetLoader.AssetsPathHandler(this)).build();
-web.setWebViewClient(new WebViewClient() {
-
-    @Override
-    public android.webkit.WebResourceResponse shouldInterceptRequest(
-            WebView view,
-            android.webkit.WebResourceRequest request) {
+        .addPathHandler("/assets/", new WebViewAssetLoader.AssetsPathHandler(this)).build();
+    web.setWebViewClient(new WebViewClient() {
+      @Override public android.webkit.WebResourceResponse shouldInterceptRequest(
+          WebView view, android.webkit.WebResourceRequest request) {
         return loader.shouldInterceptRequest(request.getUrl());
-    }
-
-    @Override
-    public boolean shouldOverrideUrlLoading(
-            WebView view,
-            android.webkit.WebResourceRequest request) {
-
+      }
+      @Override public boolean shouldOverrideUrlLoading(WebView view,
+          android.webkit.WebResourceRequest request) {
         if (!request.isForMainFrame()) return false;
-
         Uri uri = request.getUrl();
-        String scheme = uri.getScheme();
-        String host = uri.getHost();
-
-        if (("https".equalsIgnoreCase(scheme)
-                || "http".equalsIgnoreCase(scheme))
-                && host != null
-                && (host.equalsIgnoreCase("music.apple.com")
-                    || host.equalsIgnoreCase("open.spotify.com"))) {
-
-            try {
-                Intent intent = new Intent(Intent.ACTION_VIEW, uri);
-                startActivity(intent);
-            } catch (android.content.ActivityNotFoundException e) {
-                android.widget.Toast.makeText(
-                    MainActivity.this,
-                    "リンクを開けませんでした",
-                    android.widget.Toast.LENGTH_SHORT
-                ).show();
-            }
-
-            return true;
+        String scheme = uri.getScheme(), host = uri.getHost();
+        // Don't expose the native file/audio JS bridge to arbitrary remote pages.
+        // Apple Music, Spotify and other external links open outside this WebView.
+        if (("https".equalsIgnoreCase(scheme) || "http".equalsIgnoreCase(scheme)) &&
+            host != null && !host.equalsIgnoreCase("appassets.androidplatform.net")) {
+          try { startActivity(new Intent(Intent.ACTION_VIEW, uri)); }
+          catch (Exception e) { Toast.makeText(MainActivity.this, "リンクを開けませんでした",
+              Toast.LENGTH_SHORT).show(); }
+          return true;
         }
-
         return false;
-    }
-});
+      }
+    });
     web.setWebChromeClient(new WebChromeClient() {
-      @Override public boolean onShowFileChooser(WebView view, ValueCallback<Uri[]> callback, FileChooserParams params) {
+      @Override public boolean onShowFileChooser(WebView view, ValueCallback<Uri[]> callback,
+          FileChooserParams params) {
         if (pendingFiles != null) pendingFiles.onReceiveValue(null);
         pendingFiles = callback;
         try {
-          // ACTION_OPEN_DOCUMENT supports selecting multiple tracks on Android.
-          // Keep single selection for the manual cover-art picker.
           boolean multi = params.getMode() == FileChooserParams.MODE_OPEN_MULTIPLE;
-          Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
-          intent.addCategory(Intent.CATEGORY_OPENABLE);
-          intent.setType(multi ? "audio/*" : "*/*");
+          Intent picker = new Intent(Intent.ACTION_OPEN_DOCUMENT);
+          picker.addCategory(Intent.CATEGORY_OPENABLE);
+          picker.setType(multi ? "audio/*" : "*/*");
           if (!multi) {
             String[] types = params.getAcceptTypes();
-            if (types != null && types.length > 0 && types[0] != null && !types[0].isEmpty()) {
-              intent.setType(types[0]);
-            }
+            if (types != null && types.length > 0 && types[0] != null && !types[0].isEmpty())
+              picker.setType(types[0]);
           }
-          intent.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, multi);
-          startActivityForResult(intent, PICK_FILES);
+          picker.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, multi);
+          picker.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION |
+              Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION);
+          startActivityForResult(picker, PICK_FILES);
           return true;
         } catch (Exception e) {
           pendingFiles = null;
@@ -284,42 +335,79 @@ web.setWebViewClient(new WebViewClient() {
         }
       }
     });
+    bindService(new Intent(this, PlaybackService.class), serviceConnection, Context.BIND_AUTO_CREATE);
     web.loadUrl("https://appassets.androidplatform.net/assets/index.html");
   }
-  @Override public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
-    super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-    if (requestCode == 1003 && grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) showMediaNotification();
+
+  private void registerPickedFile(Uri uri) {
+    if (uri == null) return;
+    boolean persistable = false;
+    try {
+      getContentResolver().takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION);
+      persistable = true;
+    } catch (SecurityException e) {
+      Log.w("DONIX", "URI provider does not allow persistable access; use app-local audio", e);
+    }
+    String name = null;
+    long size = -1;
+    try (Cursor cursor = getContentResolver().query(uri,
+        new String[]{OpenableColumns.DISPLAY_NAME, OpenableColumns.SIZE}, null, null, null)) {
+      if (cursor != null && cursor.moveToFirst()) {
+        name = cursor.getString(0);
+        if (!cursor.isNull(1)) size = cursor.getLong(1);
+      }
+    } catch (Exception ignored) { }
+    if (name == null) name = uri.getLastPathSegment();
+    if (name != null && persistable) synchronized (pendingImports) {
+      pendingImports.add(new ImportedFile(name, size, uri.toString()));
+    }
+    MediaMetadataRetriever r = new MediaMetadataRetriever();
+    try {
+      r.setDataSource(this, uri);
+      byte[] bytes = r.getEmbeddedPicture();
+      if (bytes != null && bytes.length > 0 && bytes.length < 5 * 1024 * 1024) {
+        String type = bytes.length > 3 && (bytes[0] & 255) == 255 ? "image/jpeg" : "image/png";
+        covers.put(name, "data:" + type + ";base64," + Base64.encodeToString(bytes, Base64.NO_WRAP));
+      }
+    } catch (Exception ignored) { }
+    finally { try { r.release(); } catch (Exception ignored) { } }
   }
+
   @Override protected void onActivityResult(int request, int result, Intent data) {
     super.onActivityResult(request, result, data);
-    if (request == PICK_FILES && pendingFiles != null) {
-      Uri[] uris = null;
-      if (result == RESULT_OK && data != null) {
-        android.content.ClipData clip = data.getClipData();
-        if (clip != null && clip.getItemCount() > 0) {
-          java.util.LinkedHashSet<Uri> selected = new java.util.LinkedHashSet<>();
-          for (int i = 0; i < clip.getItemCount(); i++) {
-            Uri uri = clip.getItemAt(i).getUri();
-            if (uri != null) selected.add(uri);
-          }
-          uris = selected.toArray(new Uri[0]);
-        } else if (data.getData() != null) {
-          uris = new Uri[]{data.getData()};
-        }
-      }
-      if (uris != null) for (Uri uri : uris) registerCover(uri);
-      pendingFiles.onReceiveValue(uris);
-      pendingFiles = null;
+    if (request != PICK_FILES || pendingFiles == null) return;
+    Uri[] uris = null;
+    if (result == RESULT_OK && data != null) {
+      LinkedHashSet<Uri> selected = new LinkedHashSet<>();
+      ClipData clip = data.getClipData();
+      if (clip != null) for (int i = 0; i < clip.getItemCount(); i++)
+        selected.add(clip.getItemAt(i).getUri());
+      else if (data.getData() != null) selected.add(data.getData());
+      uris = selected.toArray(new Uri[0]);
     }
-  }
-  @Override public void onBackPressed() {
-    if (web.canGoBack()) web.goBack(); else super.onBackPressed();
+    synchronized (pendingImports) { pendingImports.clear(); }
+    if (uris != null) for (Uri uri : uris) registerPickedFile(uri);
+    pendingFiles.onReceiveValue(uris);
+    pendingFiles = null;
   }
   @Override protected void onResume() {
     super.onResume();
-    // Refresh the native notification if the WebView was suspended in background.
+    activityVisible = true;
     if (web != null) web.evaluateJavascript(
-      "if(window.DonixSyncMedia)window.DonixSyncMedia()", null);
+        "window.DonixPullState && window.DonixPullState()", null);
   }
-  @Override protected void onDestroy() { currentActivity = null; if (notificationManager != null) notificationManager.cancel(NOTIFICATION_ID); if (mediaSession != null) mediaSession.release(); if (pendingFiles != null) pendingFiles.onReceiveValue(null); web.destroy(); super.onDestroy(); }
+  @Override protected void onPause() {
+    activityVisible = false;
+    super.onPause();
+  }
+  @Override public void onBackPressed() {
+    if (web != null && web.canGoBack()) web.goBack(); else super.onBackPressed();
+  }
+  @Override protected void onDestroy() {
+    if (playback != null) playback.setListener(null);
+    if (serviceBound) { unbindService(serviceConnection); serviceBound = false; }
+    if (pendingFiles != null) { pendingFiles.onReceiveValue(null); pendingFiles = null; }
+    if (web != null) { web.destroy(); web = null; }
+    super.onDestroy();
+  }
 }
